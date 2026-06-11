@@ -841,7 +841,7 @@
             function calculateAndUpdate() {
                 const { totalHours, dailyWage, survivalCost } = getValues();
                 const r = calcCore(totalHours, dailyWage, survivalCost);
-                const { w, n, nc, s, ws, m } = r;
+                const { L, v, c, w, n, nc, s, ws, m } = r;
 
                 // Basic values
                 hourlyWageEl.textContent = fmtn(w);
