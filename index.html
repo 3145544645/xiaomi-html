@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>剩余价值计算器 - 马克思政治经济学模型</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>/* Chart.js fallback: if CDN fails, define dummy Chart */ window.Chart = window.Chart || function() { this.destroy = function(){}; };</script>
     <style>
         :root {
             --bg: #0d0f13;
@@ -999,14 +1000,20 @@
                     );
 
                 // ===================== CHART UPDATE =====================
-                updateChart(L, v, c);
+                try { updateChart(L, v, c); } catch(e) { /* chart unavailable */ }
             }
 
             // ===================== CHART =====================
             function updateChart(L_current, v, c) {
-                const hours = [];
-                const rates = [];
-                const ctx = document.getElementById('sensitivityChart').getContext('2d');
+                // Check if Chart.js actually loaded (not just dummy fallback)
+                if (typeof Chart === 'undefined' || !Chart.prototype || !Chart.prototype.constructor) return;
+                try {
+                    const hours = [];
+                    const rates = [];
+                    const canvas = document.getElementById('sensitivityChart');
+                    if (!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
 
                 // Generate data: vary L from 1 to 24
                 for (let L = 1; L <= 24; L += 0.5) {
@@ -1073,6 +1080,7 @@
                         }
                     }
                 });
+                } catch(e) { /* chart safe fallback */ }
             }
 
             // ===================== BIND INPUTS =====================
