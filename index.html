@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剩余价值计算器 - 马克思政治经济学模型</title>
+    <style>
+        :root {
+            --bg: #0d0f13;
+            --card-bg: #161922;
+            --card-border: #252836;
+            --text: #e0e0e0;
+            --text-secondary: #a0a4b0;
+            --text-muted: #6b6f7c;
+            --accent-red: #e8453c;
+            --accent-red-glow: rgba(232, 69, 60, 0.35);
+            --accent-gold: #d4a853;
+            --accent-green: #3ea87c;
+            --accent-blue: #5b8def;
+            --input-bg: #1c1f2b;
+            --input-border: #2e3140;
+            --input-focus: #3a3f52;
+            --slider-track: #2e3140;
+            --slider-fill: #e8453c;
+            --bar-worker: #3ea87c;
+            --bar-boss: #e8453c;
+            --divider: #252836;
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
+            --radius-sm: 8px;
+            --radius: 14px;
+            --radius-lg: 20px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(232, 69, 60, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 60%, rgba(212, 168, 83, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 80%, rgba(91, 141, 239, 0.03) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 0 10px;
+        }
+        .header .icon-row {
+            font-size: 40px;
+            margin-bottom: 8px;
+            letter-spacing: 4px;
+        }
+        .header h1 {
+            font-size: clamp(1.5rem, 3vw, 1.85rem);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: #f0f0f0;
+            margin-bottom: 6px;
+        }
+        .header .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 0.04em;
+        }
+        .header .subtitle span {
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.15fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 720px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+            body {
+                padding: 12px;
+            }
+            .container {
+                gap: 18px;
+            }
+        }
+
+        /* Card */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 26px 28px;
+            box-shadow: var(--shadow-card);
+            transition: var(--transition);
+        }
+        .card:hover {
+            border-color: #353a4d;
+        }
+        .card-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-label::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            background: var(--accent-gold);
+        }
+
+        /* Input Group */
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+        .input-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+            letter-spacing: 0.02em;
+        }
+        .input-group label .param-name {
+            color: var(--text);
+        }
+        .input-group label .param-unit {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .input-row input[type="number"] {
+            width: 90px;
+            flex-shrink: 0;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            color: #f0f0f0;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            transition: var(--transition);
+            font-family: inherit;
+            -moz-appearance: textfield;
+        }
+        .input-row input[type="number"]::-webkit-outer-spin-button,
+        .input-row input[type="number"]::-webkit-inner-spin-button {
+            opacity: 1;
+            height: 30px;
+        }
+        .input-row input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 4px rgba(212, 168, 83, 0.08);
+            background: #1f2332;
+        }
+        .input-row input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--slider-track);
+            outline: none;
+            cursor: pointer;
+        }
+        .input-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: 2px solid var(--accent-gold);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+            transition: var(--transition);
+        }
+        .input-row input[type="range"]::-webkit-slider-thumb:hover {
+            background: #fff;
+            border-color: #e8c86a;
+            box-shadow: 0 4px 16px rgba(212, 168, 83, 0.35);
+        }
+        .input-hint {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Results Card */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 400px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .result-item {
+            background: var(--input-bg);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .result-item.highlight {
+            border-color: rgba(232, 69, 60, 0.45);
+            box-shadow: 0 0 30px var(--accent-red-glow);
+            background: #1a1116;
+        }
+        .result-item .result-label {
+            font-size: 0.73rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .result-item .result-value {
+            font-size: 1.7rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: #f0f0f0;
+            line-height: 1.2;
+        }
+        .result-item.highlight .result-value {
+            color: #ff5e52;
+            font-size: 2rem;
+        }
+        .result-item .result-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+        .result-item .result-value.small {
+            font-size: 1.3rem;
+        }
+
+        /* Time Bar */
+        .time-bar-section {
+            margin-top: 6px;
+        }
+        .time-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .time-bar-outer {
+            height: 36px;
+            background: #1c1f2b;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            position: relative;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--card-border);
+        }
+        .time-bar-worker {
+            height: 100%;
+            background: var(--bar-worker);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #fff;
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            letter-spacing: 0.04em;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        .time-bar-boss {
+            height: 100%;
+            background: var(--bar-boss);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #fff;
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            letter-spacing: 0.04em;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        .time-bar-divider {
+            width: 2px;
+            background: #fff;
+            opacity: 0.7;
+            flex-shrink: 0;
+            z-index: 2;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+        .time-bar-legend {
+            display: flex;
+            gap: 18px;
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+        .time-bar-legend span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .legend-dot.worker {
+            background: var(--bar-worker);
+        }
+        .legend-dot.boss {
+            background: var(--bar-boss);
+        }
+
+        /* Per-hour insight */
+        .per-hour-insight {
+            margin-top: 16px;
+            padding: 14px 16px;
+            background: rgba(212, 168, 83, 0.06);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--accent-gold);
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            letter-spacing: 0.02em;
+        }
+        .per-hour-insight strong {
+            color: var(--accent-gold);
+        }
+        .per-hour-insight .boss-min {
+            color: #ff5e52;
+            font-weight: 700;
+        }
+
+        /* Conclusion */
+        .conclusion {
+            margin-top: 18px;
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.88rem;
+            letter-spacing: 0.03em;
+            text-align: center;
+            transition: var(--transition);
+            line-height: 1.5;
+        }
+        .conclusion.extreme {
+            background: rgba(232, 69, 60, 0.12);
+            border: 1px solid rgba(232, 69, 60, 0.4);
+            color: #ff7b72;
+        }
+        .conclusion.high {
+            background: rgba(232, 69, 60, 0.07);
+            border: 1px solid rgba(232, 69, 60, 0.3);
+            color: #ff9e96;
+        }
+        .conclusion.moderate {
+            background: rgba(212, 168, 83, 0.08);
+            border: 1px solid rgba(212, 168, 83, 0.35);
+            color: #e8c86a;
+        }
+        .conclusion.low {
+            background: rgba(62, 168, 124, 0.07);
+            border: 1px solid rgba(62, 168, 124, 0.3);
+            color: #5cc99b;
+        }
+        .conclusion.none {
+            background: rgba(160, 164, 176, 0.06);
+            border: 1px solid rgba(160, 164, 176, 0.25);
+            color: #b0b4c0;
+        }
+
+        /* Footer */
+        .footer-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* Pulse animation for extreme剥削率 */
+        @keyframes pulse-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 25px var(--accent-red-glow);
+            }
+            50% {
+                box-shadow: 0 0 45px rgba(232, 69, 60, 0.55);
+            }
+        }
+        .result-item.highlight.pulse {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="icon-row">🔨⛓️💰</div>
+            <h1>剩余价值计算器</h1>
+            <p class="subtitle">基于 <span>马克思《资本论》</span> 劳动时间模型</p>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Input Card -->
+            <div class="card" id="inputCard">
+                <div class="card-label">📐 参数输入</div>
+
+                <div class="input-group">
+                    <label>
+                        <span class="param-name">总工作时间 (L)</span>
+                        <span class="param-unit">小时/天</span>
+                    </label>
+                    <div class="input-row">
+                        <input type="number" id="totalHours" value="12" min="4" max="18" step="0.5">
+                        <input type="range" id="totalHoursSlider" value="12" min="4" max="18" step="0.5">
+                    </div>
+                    <p class="input-hint">你每天实际工作多少小时？默认12小时</p>
+                </div>
+
+                <div class="input-group">
+                    <label>
+                        <span class="param-name">日工资 (v)</span>
+                        <span class="param-unit">元/天</span>
+                    </label>
+                    <div class="input-row">
+                        <input type="number" id="dailyWage" value="200" min="30" max="800" step="10">
+                        <input type="range" id="dailyWageSlider" value="200" min="30" max="800" step="10">
+                    </div>
+                    <p class="input-hint">老板每天支付给你的工资</p>
+                </div>
+
+                <div class="input-group">
+                    <label>
+                        <span class="param-name">日生存成本</span>
+                        <span class="param-unit">元/天</span>
+                    </label>
+                    <div class="input-row">
+                        <input type="number" id="survivalCost" value="30" min="10" max="500" step="5">
+                        <input type="range" id="survivalCostSlider" value="30" min="10" max="500" step="5">
+                    </div>
+                    <p class="input-hint">维持基本生存（吃饭、房租、日用）的日均花费</p>
+                </div>
+            </div>
+
+            <!-- Results Card -->
+            <div class="card" id="resultsCard">
+                <div class="card-label">📊 计算结果</div>
+
+                <!-- Key metrics -->
+                <div class="results-grid">
+                    <div class="result-item">
+                        <div class="result-label">⏱ 小时工资</div>
+                        <div class="result-value small" id="hourlyWage">16.67</div>
+                        <div class="result-sub">元/小时</div>
+                    </div>
+                    <div class="result-item highlight pulse" id="surplusRateBox">
+                        <div class="result-label">⚠ 剩余价值率 (剥削率)</div>
+                        <div class="result-value" id="surplusRate">566.67%</div>
+                        <div class="result-sub" id="surplusRateLabel">极度剥削</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">🟢 必要劳动时间</div>
+                        <div class="result-value small" id="necessaryTime">1.80</div>
+                        <div class="result-sub">小时 — 为自己工作</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">🔴 剩余劳动时间</div>
+                        <div class="result-value small" id="surplusTime">10.20</div>
+                        <div class="result-sub">小时 — 为老板白干</div>
+                    </div>
+                </div>
+
+                <!-- Time Bar Visualization -->
+                <div class="time-bar-section">
+                    <div class="time-bar-label">
+                        <span>12小时工作日的真实构成</span>
+                        <span id="timeBarSummary">仅1.80h为自己 / 10.20h被剥削</span>
+                    </div>
+                    <div class="time-bar-outer">
+                        <div class="time-bar-worker" id="timeBarWorker" style="width:15%;">为自己 1.80h</div>
+                        <div class="time-bar-divider" id="timeBarDivider"></div>
+                        <div class="time-bar-boss" id="timeBarBoss" style="width:85%;">为老板 10.20h</div>
+                    </div>
+                    <div class="time-bar-legend">
+                        <span><span class="legend-dot worker"></span> 必要劳动（挣口粮）</span>
+                        <span><span class="legend-dot boss"></span> 剩余劳动（被剥削）</span>
+                    </div>
+                </div>
+
+                <!-- Per-hour insight -->
+                <div class="per-hour-insight" id="perHourInsight">
+                    💡 你每工作 <strong>1 小时</strong>，其中只有约 <strong>9 分钟</strong> 是在为自己挣口粮，
+                    其余 <span class="boss-min">约 51 分钟</span> 是在无偿为老板创造剩余价值。
+                </div>
+
+                <!-- Conclusion -->
+                <div class="conclusion extreme" id="conclusionBox">
+                    ⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">170.00 元</strong> | 剥削率高达 <strong id="conclusionRate">566.67%</strong> — 极端剥削
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="footer-note">
+            马克思《资本论》核心公式：剩余价值率 m' = 剩余劳动时间 ÷ 必要劳动时间 × 100%
+        </p>
+    </div>
+
+    <script>
+        (function() {
+            // DOM elements
+            const totalHoursInput = document.getElementById('totalHours');
+            const totalHoursSlider = document.getElementById('totalHoursSlider');
+            const dailyWageInput = document.getElementById('dailyWage');
+            const dailyWageSlider = document.getElementById('dailyWageSlider');
+            const survivalCostInput = document.getElementById('survivalCost');
+            const survivalCostSlider = document.getElementById('survivalCostSlider');
+
+            // Result elements
+            const hourlyWageEl = document.getElementById('hourlyWage');
+            const surplusRateEl = document.getElementById('surplusRate');
+            const surplusRateLabelEl = document.getElementById('surplusRateLabel');
+            const necessaryTimeEl = document.getElementById('necessaryTime');
+            const surplusTimeEl = document.getElementById('surplusTime');
+            const timeBarWorker = document.getElementById('timeBarWorker');
+            const timeBarBoss = document.getElementById('timeBarBoss');
+            const timeBarDivider = document.getElementById('timeBarDivider');
+            const timeBarSummary = document.getElementById('timeBarSummary');
+            const perHourInsight = document.getElementById('perHourInsight');
+            const conclusionBox = document.getElementById('conclusionBox');
+            const surplusMoneyEl = document.getElementById('surplusMoney');
+            const conclusionRateEl = document.getElementById('conclusionRate');
+            const surplusRateBox = document.getElementById('surplusRateBox');
+
+            // Get values
+            function getValues() {
+                return {
+                    totalHours: parseFloat(totalHoursInput.value) || 12,
+                    dailyWage: parseFloat(dailyWageInput.value) || 200,
+                    survivalCost: parseFloat(survivalCostInput.value) || 30,
+                };
+            }
+
+            // Sync inputs
+            function syncAll() {
+                const vals = getValues();
+                totalHoursSlider.value = vals.totalHours;
+                dailyWageSlider.value = vals.dailyWage;
+                survivalCostSlider.value = vals.survivalCost;
+                calculateAndUpdate();
+            }
+
+            // Calculate and update UI
+            function calculateAndUpdate() {
+                const { totalHours, dailyWage, survivalCost } = getValues();
+
+                // Hourly wage
+                const hourlyWage = dailyWage / totalHours;
+
+                // Necessary labor time (hours to earn survival cost)
+                let necessaryTime;
+                if (hourlyWage > 0) {
+                    necessaryTime = survivalCost / hourlyWage;
+                } else {
+                    necessaryTime = totalHours;
+                }
+
+                // Clamp necessary time to [0, totalHours] for display purposes
+                const necessaryTimeClamped = Math.max(0, Math.min(necessaryTime, totalHours));
+
+                // Surplus labor time
+                const surplusTime = totalHours - necessaryTimeClamped;
+
+                // Surplus value (money form)
+                const surplusMoney = dailyWage - survivalCost;
+                const surplusMoneyClamped = Math.max(0, surplusMoney);
+
+                // Surplus value rate
+                let surplusRate;
+                if (necessaryTimeClamped > 0 && surplusTime >= 0) {
+                    surplusRate = (surplusTime / necessaryTimeClamped) * 100;
+                } else if (surplusTime <= 0) {
+                    surplusRate = 0;
+                } else {
+                    surplusRate = 0;
+                }
+
+                // Percentages for time bar
+                let workerPct, bossPct;
+                if (totalHours > 0) {
+                    workerPct = (necessaryTimeClamped / totalHours) * 100;
+                    bossPct = (surplusTime / totalHours) * 100;
+                } else {
+                    workerPct = 100;
+                    bossPct = 0;
+                }
+                // Clamp percentages
+                workerPct = Math.max(0, Math.min(100, workerPct));
+                bossPct = Math.max(0, Math.min(100, bossPct));
+
+                // Per-hour breakdown
+                const perHourWorkerMin = (necessaryTimeClamped / totalHours) * 60;
+                const perHourBossMin = (surplusTime / totalHours) * 60;
+
+                // Update DOM
+                hourlyWageEl.textContent = hourlyWage.toFixed(2);
+                necessaryTimeEl.textContent = necessaryTimeClamped.toFixed(2);
+                surplusTimeEl.textContent = surplusTime.toFixed(2);
+                surplusRateEl.textContent = surplusRate.toFixed(2) + '%';
+                surplusMoneyEl.textContent = surplusMoneyClamped.toFixed(2);
+                conclusionRateEl.textContent = surplusRate.toFixed(2) + '%';
+
+                // Time bar
+                timeBarWorker.style.width = workerPct + '%';
+                timeBarBoss.style.width = bossPct + '%';
+                timeBarWorker.textContent = '为自己 ' + necessaryTimeClamped.toFixed(2) + 'h';
+                timeBarBoss.textContent = '为老板 ' + surplusTime.toFixed(2) + 'h';
+
+                // Show/hide divider
+                if (workerPct > 0 && bossPct > 0) {
+                    timeBarDivider.style.display = 'block';
+                } else {
+                    timeBarDivider.style.display = 'none';
+                }
+
+                // Time bar summary
+                timeBarSummary.textContent =
+                    '仅' + necessaryTimeClamped.toFixed(2) + 'h为自己 / ' + surplusTime.toFixed(2) + 'h被剥削';
+
+                // Per-hour insight
+                const workerMinRound = Math.round(perHourWorkerMin);
+                const bossMinRound = Math.round(perHourBossMin);
+                if (surplusTime > 0 && necessaryTimeClamped > 0) {
+                    perHourInsight.innerHTML =
+                        '💡 你每工作 <strong>1 小时</strong>，其中只有约 <strong>' + workerMinRound +
+                        ' 分钟</strong> 是在为自己挣口粮，其余 <span class="boss-min">约 ' + bossMinRound +
+                        ' 分钟</span> 是在无偿为老板创造剩余价值。';
+                    perHourInsight.style.display = 'block';
+                } else if (surplusTime <= 0 && necessaryTimeClamped >= totalHours) {
+                    perHourInsight.innerHTML =
+                        '💡 你的全部工作时间都仅够维持生存，甚至入不敷出。没有剩余劳动时间被剥削。';
+                    perHourInsight.style.display = 'block';
+                } else {
+                    perHourInsight.style.display = 'none';
+                }
+
+                // Conclusion box
+                conclusionBox.classList.remove('extreme', 'high', 'moderate', 'low', 'none');
+                surplusRateBox.classList.remove('pulse');
+
+                if (surplusTime <= 0) {
+                    conclusionBox.classList.add('none');
+                    conclusionBox.innerHTML =
+                        '⚡ 每日被剥削的剩余价值：<strong id="surplusMoney">0.00 元</strong> | 剥削率 <strong id="conclusionRate">0.00%</strong> — 仅维持生存或入不敷出';
+                    surplusRateLabelEl.textContent = '无剥削/入不敷出';
+                    surplusRateBox.classList.remove('highlight', 'pulse');
+                    surplusRateBox.style.borderColor = 'rgba(160,164,176,0.3)';
+                    surplusRateBox.style.boxShadow = 'none';
+                    surplusRateBox.style.background = '#1c1f2b';
+                    surplusRateEl.style.color = '#b0b4c0';
+                } else if (surplusRate >= 400) {
+                    conclusionBox.classList.add('extreme');
+                    conclusionBox.innerHTML =
+                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
+                        ' 元</strong> | 剥削率高达 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '%</strong> — 极端剥削';
+                    surplusRateLabelEl.textContent = '极端剥削';
+                    surplusRateBox.classList.add('highlight', 'pulse');
+                    surplusRateBox.style.borderColor = 'rgba(232,69,60,0.55)';
+                    surplusRateBox.style.boxShadow = '0 0 30px rgba(232,69,60,0.4)';
+                    surplusRateBox.style.background = '#1a1116';
+                    surplusRateEl.style.color = '#ff5e52';
+                } else if (surplusRate >= 200) {
+                    conclusionBox.classList.add('high');
+                    conclusionBox.innerHTML =
+                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
+                        ' 元</strong> | 剥削率高达 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '%</strong> — 高度剥削';
+                    surplusRateLabelEl.textContent = '高度剥削';
+                    surplusRateBox.classList.add('highlight');
+                    surplusRateBox.classList.remove('pulse');
+                    surplusRateBox.style.borderColor = 'rgba(232,69,60,0.45)';
+                    surplusRateBox.style.boxShadow = '0 0 20px rgba(232,69,60,0.25)';
+                    surplusRateBox.style.background = '#1a1316';
+                    surplusRateEl.style.color = '#ff7b72';
+                } else if (surplusRate >= 100) {
+                    conclusionBox.classList.add('moderate');
+                    conclusionBox.innerHTML =
+                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
+                        ' 元</strong> | 剥削率 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '%</strong> — 显著剥削';
+                    surplusRateLabelEl.textContent = '显著剥削';
+                    surplusRateBox.classList.add('highlight');
+                    surplusRateBox.classList.remove('pulse');
+                    surplusRateBox.style.borderColor = 'rgba(212,168,83,0.45)';
+                    surplusRateBox.style.boxShadow = '0 0 20px rgba(212,168,83,0.2)';
+                    surplusRateBox.style.background = '#1a1814';
+                    surplusRateEl.style.color = '#e8c86a';
+                } else {
+                    conclusionBox.classList.add('low');
+                    conclusionBox.innerHTML =
+                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
+                        ' 元</strong> | 剥削率 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '%</strong> — 轻度剥削';
+                    surplusRateLabelEl.textContent = '轻度剥削';
+                    surplusRateBox.classList.remove('highlight', 'pulse');
+                    surplusRateBox.style.borderColor = 'rgba(62,168,124,0.35)';
+                    surplusRateBox.style.boxShadow = '0 0 16px rgba(62,168,124,0.15)';
+                    surplusRateBox.style.background = '#141a17';
+                    surplusRateEl.style.color = '#5cc99b';
+                }
+
+                // Re-bind the inner elements after innerHTML change
+                const newSurplusMoney = document.getElementById('surplusMoney');
+                const newConclusionRate = document.getElementById('conclusionRate');
+                if (newSurplusMoney) window._surplusMoneyEl = newSurplusMoney;
+                if (newConclusionRate) window._conclusionRateEl = newConclusionRate;
+            }
+
+            // Event listeners
+            function bindInputPair(numberInput, sliderInput) {
+                numberInput.addEventListener('input', function() {
+                    const val = parseFloat(this.value);
+                    if (!isNaN(val)) {
+                        const min = parseFloat(sliderInput.min);
+                        const max = parseFloat(sliderInput.max);
+                        const clamped = Math.max(min, Math.min(max, val));
+                        if (clamped !== val) {
+                            this.value = clamped;
+                        }
+                        sliderInput.value = clamped;
+                    }
+                    syncAll();
+                });
+
+                sliderInput.addEventListener('input', function() {
+                    numberInput.value = this.value;
+                    syncAll();
+                });
+
+                numberInput.addEventListener('blur', function() {
+                    if (this.value === '' || isNaN(parseFloat(this.value))) {
+                        this.value = sliderInput.value;
+                        syncAll();
+                    }
+                });
+            }
+
+            bindInputPair(totalHoursInput, totalHoursSlider);
+            bindInputPair(dailyWageInput, dailyWageSlider);
+            bindInputPair(survivalCostInput, survivalCostSlider);
+
+            // Initialize
+            syncAll();
+        })();
+    </script>
+</body>
+</html>
