@@ -564,7 +564,7 @@
 
                 <!-- Conclusion -->
                 <div class="conclusion extreme" id="conclusionBox">
-                    ⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">170.00 元</strong> | 剥削率高达 <strong id="conclusionRate">566.67%</strong> — 极端剥削
+                    ⚡ 每日工资结余：<strong id="surplusMoney">170.00 元</strong> | 剥削率 <strong id="conclusionRate">566.67%</strong> — 极端剥削
                 </div>
             </div>
         </div>
@@ -640,14 +640,17 @@
                 // Surplus labor time
                 const surplusTime = totalHours - necessaryTimeClamped;
 
-                // Surplus value (money form)
-                const surplusMoney = dailyWage - survivalCost;
-                const surplusMoneyClamped = Math.max(0, surplusMoney);
+                // Wage surplus (dailyWage minus survival cost — NOT Marxian surplus value, but "可自由支配收入/工资结余")
+                const wageSurplus = dailyWage - survivalCost;
+                // Allow negative to show deficit ("入不敷出")
 
-                // Surplus value rate
+                // Surplus value rate (exploitation rate m' = surplus labor / necessary labor × 100%)
                 let surplusRate;
                 if (necessaryTimeClamped > 0 && surplusTime >= 0) {
                     surplusRate = (surplusTime / necessaryTimeClamped) * 100;
+                } else if (necessaryTimeClamped <= 0 && surplusTime > 0) {
+                    // Edge case: survival cost = 0 → all labor is surplus
+                    surplusRate = Infinity;
                 } else if (surplusTime <= 0) {
                     surplusRate = 0;
                 } else {
@@ -675,9 +678,17 @@
                 hourlyWageEl.textContent = hourlyWage.toFixed(2);
                 necessaryTimeEl.textContent = necessaryTimeClamped.toFixed(2);
                 surplusTimeEl.textContent = surplusTime.toFixed(2);
-                surplusRateEl.textContent = surplusRate.toFixed(2) + '%';
-                surplusMoneyEl.textContent = surplusMoneyClamped.toFixed(2);
-                conclusionRateEl.textContent = surplusRate.toFixed(2) + '%';
+                // Handle infinite exploitation rate (e.g., survival cost = 0)
+                if (surplusRate === Infinity) {
+                    surplusRateEl.textContent = '∞';
+                    conclusionRateEl.textContent = '∞';
+                } else {
+                    surplusRateEl.textContent = surplusRate.toFixed(2) + '%';
+                    conclusionRateEl.textContent = surplusRate.toFixed(2) + '%';
+                }
+                surplusMoneyEl.textContent = wageSurplus.toFixed(2);
+                // Color the wage surplus: red for negative, gold for positive
+                surplusMoneyEl.style.color = wageSurplus < 0 ? '#e8453c' : (wageSurplus > 0 ? '#5cc99b' : '#b0b4c0');
 
                 // Time bar
                 timeBarWorker.style.width = workerPct + '%';
@@ -719,8 +730,9 @@
 
                 if (surplusTime <= 0) {
                     conclusionBox.classList.add('none');
+                    const deficitText = wageSurplus < 0 ? '（日不敷出 ' + wageSurplus.toFixed(2) + ' 元）' : '';
                     conclusionBox.innerHTML =
-                        '⚡ 每日被剥削的剩余价值：<strong id="surplusMoney">0.00 元</strong> | 剥削率 <strong id="conclusionRate">0.00%</strong> — 仅维持生存或入不敷出';
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) + ' 元</strong>' + deficitText + ' | 剥削率 <strong id="conclusionRate">0.00%</strong> — 仅维持生存或入不敷出';
                     surplusRateLabelEl.textContent = '无剥削/入不敷出';
                     surplusRateBox.classList.remove('highlight', 'pulse');
                     surplusRateBox.style.borderColor = 'rgba(160,164,176,0.3)';
@@ -729,9 +741,10 @@
                     surplusRateEl.style.color = '#b0b4c0';
                 } else if (surplusRate >= 400) {
                     conclusionBox.classList.add('extreme');
+                    const rateDisplay = surplusRate === Infinity ? '∞' : surplusRate.toFixed(2);
                     conclusionBox.innerHTML =
-                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
-                        ' 元</strong> | 剥削率高达 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
+                        ' 元</strong> | 剥削率高达 <strong id="conclusionRate">' + rateDisplay +
                         '%</strong> — 极端剥削';
                     surplusRateLabelEl.textContent = '极端剥削';
                     surplusRateBox.classList.add('highlight', 'pulse');
@@ -742,7 +755,7 @@
                 } else if (surplusRate >= 200) {
                     conclusionBox.classList.add('high');
                     conclusionBox.innerHTML =
-                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
                         ' 元</strong> | 剥削率高达 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
                         '%</strong> — 高度剥削';
                     surplusRateLabelEl.textContent = '高度剥削';
@@ -755,7 +768,7 @@
                 } else if (surplusRate >= 100) {
                     conclusionBox.classList.add('moderate');
                     conclusionBox.innerHTML =
-                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
                         ' 元</strong> | 剥削率 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
                         '%</strong> — 显著剥削';
                     surplusRateLabelEl.textContent = '显著剥削';
@@ -768,7 +781,7 @@
                 } else {
                     conclusionBox.classList.add('low');
                     conclusionBox.innerHTML =
-                        '⚡ 每天被剥削的剩余价值：<strong id="surplusMoney">' + surplusMoneyClamped.toFixed(2) +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
                         ' 元</strong> | 剥削率 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
                         '%</strong> — 轻度剥削';
                     surplusRateLabelEl.textContent = '轻度剥削';
