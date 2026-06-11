@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>剩余价值计算器 - 马克思政治经济学模型</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --bg: #0d0f13;
@@ -457,6 +458,106 @@
         .result-item.highlight.pulse {
             animation: pulse-glow 2s ease-in-out infinite;
         }
+
+        /* ========== NEW EXTENSIONS ========== */
+
+        /* Preset Select */
+        .preset-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--transition);
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a4b0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        .preset-select:hover, .preset-select:focus {
+            border-color: var(--accent-gold);
+            outline: none;
+        }
+        .preset-select option {
+            background: #1c1f2b;
+            color: var(--text);
+        }
+
+        /* Bottom Panels Grid */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 720px) {
+            .bottom-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Chart */
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            margin-top: 6px;
+        }
+        .chart-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Yearly Summary */
+        .yearly-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .yearly-item {
+            background: var(--input-bg);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            border: 1px solid var(--card-border);
+        }
+        .yearly-item .yl-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+        }
+        .yearly-item .yl-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .yearly-item .yl-value.positive { color: var(--accent-green); }
+        .yearly-item .yl-value.negative { color: var(--accent-red); }
+
+        /* Formula Panel */
+        .formula-panel {
+            margin-top: 0;
+        }
+        .formula-steps {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            padding: 4px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            letter-spacing: 0.01em;
+        }
+        .formula-steps .step-val {
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+        .formula-steps .step-label {
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
@@ -473,6 +574,20 @@
             <!-- Input Card -->
             <div class="card" id="inputCard">
                 <div class="card-label">📐 参数输入</div>
+
+                <div class="input-group">
+                    <label><span class="param-name">🎯 场景预设</span></label>
+                    <select class="preset-select" id="presetSelect">
+                        <option value="custom">✨ 自定义</option>
+                        <option value="factory">🏭 流水线工人</option>
+                        <option value="barista">☕ 咖啡店员</option>
+                        <option value="programmer">💻 程序员</option>
+                        <option value="cleaner">🧹 保洁人员</option>
+                        <option value="victorian">📜 19世纪英国工厂</option>
+                        <option value="delivery">🛵 外卖骑手</option>
+                    </select>
+                    <p class="input-hint">选择预设场景快速填入典型参数</p>
+                </div>
 
                 <div class="input-group">
                     <label>
@@ -569,6 +684,48 @@
             </div>
         </div>
 
+        <!-- 🌟 Bottom Panels: Chart + Yearly + Formula -->
+        <div class="bottom-grid">
+            <!-- Chart Card -->
+            <div class="card">
+                <div class="card-label">📈 剥削率敏感性分析</div>
+                <div class="chart-wrapper">
+                    <canvas id="sensitivityChart"></canvas>
+                </div>
+                <p class="input-hint" style="margin-top:8px">随工时变化的剥削率曲线（固定日薪与生存成本）</p>
+            </div>
+
+            <!-- Yearly Summary Card -->
+            <div class="card">
+                <div class="card-label">📅 年度汇总</div>
+                <div class="yearly-grid">
+                    <div class="yearly-item">
+                        <div class="yl-label">📆 月工作天数</div>
+                        <div class="yl-value" id="workDaysPerMonth">22</div>
+                    </div>
+                    <div class="yearly-item">
+                        <div class="yl-label">💰 月工资结余</div>
+                        <div class="yl-value positive" id="monthlySurplus">3,740.00 元</div>
+                    </div>
+                    <div class="yearly-item">
+                        <div class="yl-label">⏱ 年被剥削工时</div>
+                        <div class="yl-value" id="yearlySurplusHours" style="color:#e8453c">2,692.80 h</div>
+                    </div>
+                    <div class="yearly-item">
+                        <div class="yl-label">💵 年工资结余</div>
+                        <div class="yl-value positive" id="yearlySurplus">44,880.00 元</div>
+                    </div>
+                </div>
+                <p class="input-hint" style="margin-top:8px">按每月 <span id="daysHint">22</span> 个工作日估算</p>
+            </div>
+        </div>
+
+        <!-- 🌟 Formula Panel -->
+        <div class="card formula-panel">
+            <div class="card-label">📐 计算步骤推导</div>
+            <div class="formula-steps" id="formulaSteps">加载中...</div>
+        </div>
+
         <!-- Footer -->
         <p class="footer-note">
             马克思《资本论》核心公式：剩余价值率 m' = 剩余劳动时间 ÷ 必要劳动时间 × 100%
@@ -577,31 +734,66 @@
 
     <script>
         (function() {
-            // DOM elements
-            const totalHoursInput = document.getElementById('totalHours');
-            const totalHoursSlider = document.getElementById('totalHoursSlider');
-            const dailyWageInput = document.getElementById('dailyWage');
-            const dailyWageSlider = document.getElementById('dailyWageSlider');
-            const survivalCostInput = document.getElementById('survivalCost');
-            const survivalCostSlider = document.getElementById('survivalCostSlider');
+            'use strict';
 
-            // Result elements
-            const hourlyWageEl = document.getElementById('hourlyWage');
-            const surplusRateEl = document.getElementById('surplusRate');
-            const surplusRateLabelEl = document.getElementById('surplusRateLabel');
-            const necessaryTimeEl = document.getElementById('necessaryTime');
-            const surplusTimeEl = document.getElementById('surplusTime');
-            const timeBarWorker = document.getElementById('timeBarWorker');
-            const timeBarBoss = document.getElementById('timeBarBoss');
-            const timeBarDivider = document.getElementById('timeBarDivider');
-            const timeBarSummary = document.getElementById('timeBarSummary');
-            const perHourInsight = document.getElementById('perHourInsight');
-            const conclusionBox = document.getElementById('conclusionBox');
-            const surplusMoneyEl = document.getElementById('surplusMoney');
-            const conclusionRateEl = document.getElementById('conclusionRate');
-            const surplusRateBox = document.getElementById('surplusRateBox');
+            // ===================== PRESETS =====================
+            const PRESETS = {
+                factory:   { L:12, v:180, c:40,  label:'🏭 流水线工人' },
+                barista:   { L:8,  v:150, c:35,  label:'☕ 咖啡店员' },
+                programmer:{ L:10, v:500, c:60,  label:'💻 程序员' },
+                cleaner:   { L:10, v:100, c:35,  label:'🧹 保洁人员' },
+                victorian: { L:16, v:5,   c:3,   label:'📜 19世纪英国工厂' },
+                delivery:  { L:12, v:120, c:40,  label:'🛵 外卖骑手' },
+            };
 
-            // Get values
+            // ===================== DOM =====================
+            const $ = id => document.getElementById(id);
+            const totalHoursInput   = $('totalHours');
+            const totalHoursSlider  = $('totalHoursSlider');
+            const dailyWageInput    = $('dailyWage');
+            const dailyWageSlider   = $('dailyWageSlider');
+            const survivalCostInput = $('survivalCost');
+            const survivalCostSlider= $('survivalCostSlider');
+            const presetSelect      = $('presetSelect');
+
+            const hourlyWageEl      = $('hourlyWage');
+            const surplusRateEl     = $('surplusRate');
+            const surplusRateLabelEl= $('surplusRateLabel');
+            const necessaryTimeEl   = $('necessaryTime');
+            const surplusTimeEl     = $('surplusTime');
+            const timeBarWorker     = $('timeBarWorker');
+            const timeBarBoss       = $('timeBarBoss');
+            const timeBarDivider    = $('timeBarDivider');
+            const timeBarSummary    = $('timeBarSummary');
+            const perHourInsight    = $('perHourInsight');
+            const conclusionBox     = $('conclusionBox');
+            const surplusMoneyEl    = $('surplusMoney');
+            const conclusionRateEl  = $('conclusionRate');
+            const surplusRateBox    = $('surplusRateBox');
+
+            const monthlySurplusEl  = $('monthlySurplus');
+            const yearlySurplusHoursEl = $('yearlySurplusHours');
+            const yearlySurplusEl   = $('yearlySurplus');
+            const workDaysPerMonthEl= $('workDaysPerMonth');
+            const daysHintEl        = $('daysHint');
+            const formulaStepsEl    = $('formulaSteps');
+
+            let chartInstance = null;
+
+            // ===================== SCENE PRESET =====================
+            presetSelect.addEventListener('change', function() {
+                const key = this.value;
+                if (key === 'custom') return;
+                const p = PRESETS[key];
+                if (!p) return;
+                totalHoursInput.value    = p.L;
+                dailyWageInput.value     = p.v;
+                survivalCostInput.value  = p.c;
+                syncAll();
+                presetSelect.value = 'custom'; // Reset to custom after applying
+            });
+
+            // ===================== GET VALUES =====================
             function getValues() {
                 return {
                     totalHours: parseFloat(totalHoursInput.value) || 12,
@@ -610,7 +802,7 @@
                 };
             }
 
-            // Sync inputs
+            // ===================== SYNC =====================
             function syncAll() {
                 const vals = getValues();
                 totalHoursSlider.value = vals.totalHours;
@@ -619,104 +811,76 @@
                 calculateAndUpdate();
             }
 
-            // Calculate and update UI
+            // ===================== CORE CALC =====================
+            function calcCore(L, v, c) {
+                const w = v / L;
+                const n = w > 0 ? c / w : L;
+                const nc = Math.max(0, Math.min(n, L));
+                const s = L - nc;
+                const ws = v - c;
+                let m;
+                if (nc > 0 && s >= 0)       m = (s / nc) * 100;
+                else if (nc <= 0 && s > 0)  m = Infinity;
+                else                        m = 0;
+                return { L, v, c, w, n, nc, s, ws, m };
+            }
+
+            // ===================== FORMAT =====================
+            function fmtn(x) { return x.toFixed(2); }
+            function fmtr(x) { return x === Infinity ? '∞' : fmtn(x) + '%'; }
+            function fmtMoney(x) {
+                const sign = x < 0 ? '-' : '';
+                const abs = Math.abs(x);
+                return sign + abs.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' 元';
+            }
+            function fmtHours(x) {
+                return x.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' h';
+            }
+
+            // ===================== UPDATE UI =====================
             function calculateAndUpdate() {
                 const { totalHours, dailyWage, survivalCost } = getValues();
+                const r = calcCore(totalHours, dailyWage, survivalCost);
+                const { w, n, nc, s, ws, m } = r;
 
-                // Hourly wage
-                const hourlyWage = dailyWage / totalHours;
+                // Basic values
+                hourlyWageEl.textContent = fmtn(w);
+                necessaryTimeEl.textContent = fmtn(nc);
+                surplusTimeEl.textContent = fmtn(s);
 
-                // Necessary labor time (hours to earn survival cost)
-                let necessaryTime;
-                if (hourlyWage > 0) {
-                    necessaryTime = survivalCost / hourlyWage;
-                } else {
-                    necessaryTime = totalHours;
-                }
-
-                // Clamp necessary time to [0, totalHours] for display purposes
-                const necessaryTimeClamped = Math.max(0, Math.min(necessaryTime, totalHours));
-
-                // Surplus labor time
-                const surplusTime = totalHours - necessaryTimeClamped;
-
-                // Wage surplus (dailyWage minus survival cost — NOT Marxian surplus value, but "可自由支配收入/工资结余")
-                const wageSurplus = dailyWage - survivalCost;
-                // Allow negative to show deficit ("入不敷出")
-
-                // Surplus value rate (exploitation rate m' = surplus labor / necessary labor × 100%)
-                let surplusRate;
-                if (necessaryTimeClamped > 0 && surplusTime >= 0) {
-                    surplusRate = (surplusTime / necessaryTimeClamped) * 100;
-                } else if (necessaryTimeClamped <= 0 && surplusTime > 0) {
-                    // Edge case: survival cost = 0 → all labor is surplus
-                    surplusRate = Infinity;
-                } else if (surplusTime <= 0) {
-                    surplusRate = 0;
-                } else {
-                    surplusRate = 0;
-                }
-
-                // Percentages for time bar
-                let workerPct, bossPct;
-                if (totalHours > 0) {
-                    workerPct = (necessaryTimeClamped / totalHours) * 100;
-                    bossPct = (surplusTime / totalHours) * 100;
-                } else {
-                    workerPct = 100;
-                    bossPct = 0;
-                }
-                // Clamp percentages
-                workerPct = Math.max(0, Math.min(100, workerPct));
-                bossPct = Math.max(0, Math.min(100, bossPct));
-
-                // Per-hour breakdown
-                const perHourWorkerMin = (necessaryTimeClamped / totalHours) * 60;
-                const perHourBossMin = (surplusTime / totalHours) * 60;
-
-                // Update DOM
-                hourlyWageEl.textContent = hourlyWage.toFixed(2);
-                necessaryTimeEl.textContent = necessaryTimeClamped.toFixed(2);
-                surplusTimeEl.textContent = surplusTime.toFixed(2);
-                // Handle infinite exploitation rate (e.g., survival cost = 0)
-                if (surplusRate === Infinity) {
+                // Exploitation rate
+                if (m === Infinity) {
                     surplusRateEl.textContent = '∞';
                     conclusionRateEl.textContent = '∞';
                 } else {
-                    surplusRateEl.textContent = surplusRate.toFixed(2) + '%';
-                    conclusionRateEl.textContent = surplusRate.toFixed(2) + '%';
+                    surplusRateEl.textContent = fmtn(m) + '%';
+                    conclusionRateEl.textContent = fmtn(m) + '%';
                 }
-                surplusMoneyEl.textContent = wageSurplus.toFixed(2);
-                // Color the wage surplus: red for negative, gold for positive
-                surplusMoneyEl.style.color = wageSurplus < 0 ? '#e8453c' : (wageSurplus > 0 ? '#5cc99b' : '#b0b4c0');
+
+                // Wage surplus
+                surplusMoneyEl.textContent = fmtMoney(ws);
+                surplusMoneyEl.style.color = ws < 0 ? '#e8453c' : (ws > 0 ? '#5cc99b' : '#b0b4c0');
 
                 // Time bar
-                timeBarWorker.style.width = workerPct + '%';
-                timeBarBoss.style.width = bossPct + '%';
-                timeBarWorker.textContent = '为自己 ' + necessaryTimeClamped.toFixed(2) + 'h';
-                timeBarBoss.textContent = '为老板 ' + surplusTime.toFixed(2) + 'h';
-
-                // Show/hide divider
-                if (workerPct > 0 && bossPct > 0) {
-                    timeBarDivider.style.display = 'block';
-                } else {
-                    timeBarDivider.style.display = 'none';
-                }
-
-                // Time bar summary
-                timeBarSummary.textContent =
-                    '仅' + necessaryTimeClamped.toFixed(2) + 'h为自己 / ' + surplusTime.toFixed(2) + 'h被剥削';
+                const wp = nc > 0 ? (nc / L) * 100 : 0;
+                const bp = s > 0 ? (s / L) * 100 : 0;
+                timeBarWorker.style.width = Math.min(100, wp) + '%';
+                timeBarBoss.style.width = Math.min(100, bp) + '%';
+                timeBarWorker.textContent = '为自己 ' + fmtn(nc) + 'h';
+                timeBarBoss.textContent = '为老板 ' + fmtn(s) + 'h';
+                timeBarDivider.style.display = (wp > 0 && bp > 0) ? 'block' : 'none';
+                timeBarSummary.textContent = '仅' + fmtn(nc) + 'h为自己 / ' + fmtn(s) + 'h被剥削';
 
                 // Per-hour insight
-                const workerMinRound = Math.round(perHourWorkerMin);
-                const bossMinRound = Math.round(perHourBossMin);
-                if (surplusTime > 0 && necessaryTimeClamped > 0) {
+                const pw = (nc / L) * 60;
+                const pb = (s / L) * 60;
+                if (s > 0 && nc > 0) {
                     perHourInsight.innerHTML =
-                        '💡 你每工作 <strong>1 小时</strong>，其中只有约 <strong>' + workerMinRound +
-                        ' 分钟</strong> 是在为自己挣口粮，其余 <span class="boss-min">约 ' + bossMinRound +
+                        '💡 你每工作 <strong>1 小时</strong>，其中只有约 <strong>' + Math.round(pw) +
+                        ' 分钟</strong> 是在为自己挣口粮，其余 <span class="boss-min">约 ' + Math.round(pb) +
                         ' 分钟</span> 是在无偿为老板创造剩余价值。';
                     perHourInsight.style.display = 'block';
-                } else if (surplusTime <= 0 && necessaryTimeClamped >= totalHours) {
+                } else if (s <= 0 && nc >= L) {
                     perHourInsight.innerHTML =
                         '💡 你的全部工作时间都仅够维持生存，甚至入不敷出。没有剩余劳动时间被剥削。';
                     perHourInsight.style.display = 'block';
@@ -724,27 +888,28 @@
                     perHourInsight.style.display = 'none';
                 }
 
-                // Conclusion box
+                // Conclusion
                 conclusionBox.classList.remove('extreme', 'high', 'moderate', 'low', 'none');
                 surplusRateBox.classList.remove('pulse');
 
-                if (surplusTime <= 0) {
+                const rateDisplay = m === Infinity ? '∞' : fmtn(m);
+                const deficitText = (s <= 0 && ws < 0) ? '（日不敷出 ' + fmtMoney(ws) + '）' : '';
+
+                if (s <= 0) {
                     conclusionBox.classList.add('none');
-                    const deficitText = wageSurplus < 0 ? '（日不敷出 ' + wageSurplus.toFixed(2) + ' 元）' : '';
                     conclusionBox.innerHTML =
-                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) + ' 元</strong>' + deficitText + ' | 剥削率 <strong id="conclusionRate">0.00%</strong> — 仅维持生存或入不敷出';
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + fmtMoney(ws) + '</strong>' + deficitText +
+                        ' | 剥削率 <strong id="conclusionRate">0.00%</strong> — 仅维持生存或入不敷出';
                     surplusRateLabelEl.textContent = '无剥削/入不敷出';
                     surplusRateBox.classList.remove('highlight', 'pulse');
                     surplusRateBox.style.borderColor = 'rgba(160,164,176,0.3)';
                     surplusRateBox.style.boxShadow = 'none';
                     surplusRateBox.style.background = '#1c1f2b';
                     surplusRateEl.style.color = '#b0b4c0';
-                } else if (surplusRate >= 400) {
+                } else if (m >= 400) {
                     conclusionBox.classList.add('extreme');
-                    const rateDisplay = surplusRate === Infinity ? '∞' : surplusRate.toFixed(2);
                     conclusionBox.innerHTML =
-                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
-                        ' 元</strong> | 剥削率高达 <strong id="conclusionRate">' + rateDisplay +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + fmtMoney(ws) + '</strong> | 剥削率高达 <strong id="conclusionRate">' + rateDisplay +
                         '%</strong> — 极端剥削';
                     surplusRateLabelEl.textContent = '极端剥削';
                     surplusRateBox.classList.add('highlight', 'pulse');
@@ -752,11 +917,10 @@
                     surplusRateBox.style.boxShadow = '0 0 30px rgba(232,69,60,0.4)';
                     surplusRateBox.style.background = '#1a1116';
                     surplusRateEl.style.color = '#ff5e52';
-                } else if (surplusRate >= 200) {
+                } else if (m >= 200) {
                     conclusionBox.classList.add('high');
                     conclusionBox.innerHTML =
-                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
-                        ' 元</strong> | 剥削率高达 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + fmtMoney(ws) + '</strong> | 剥削率高达 <strong id="conclusionRate">' + rateDisplay +
                         '%</strong> — 高度剥削';
                     surplusRateLabelEl.textContent = '高度剥削';
                     surplusRateBox.classList.add('highlight');
@@ -765,11 +929,10 @@
                     surplusRateBox.style.boxShadow = '0 0 20px rgba(232,69,60,0.25)';
                     surplusRateBox.style.background = '#1a1316';
                     surplusRateEl.style.color = '#ff7b72';
-                } else if (surplusRate >= 100) {
+                } else if (m >= 100) {
                     conclusionBox.classList.add('moderate');
                     conclusionBox.innerHTML =
-                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
-                        ' 元</strong> | 剥削率 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + fmtMoney(ws) + '</strong> | 剥削率 <strong id="conclusionRate">' + rateDisplay +
                         '%</strong> — 显著剥削';
                     surplusRateLabelEl.textContent = '显著剥削';
                     surplusRateBox.classList.add('highlight');
@@ -781,8 +944,7 @@
                 } else {
                     conclusionBox.classList.add('low');
                     conclusionBox.innerHTML =
-                        '⚡ 每日工资结余：<strong id="surplusMoney">' + wageSurplus.toFixed(2) +
-                        ' 元</strong> | 剥削率 <strong id="conclusionRate">' + surplusRate.toFixed(2) +
+                        '⚡ 每日工资结余：<strong id="surplusMoney">' + fmtMoney(ws) + '</strong> | 剥削率 <strong id="conclusionRate">' + rateDisplay +
                         '%</strong> — 轻度剥削';
                     surplusRateLabelEl.textContent = '轻度剥削';
                     surplusRateBox.classList.remove('highlight', 'pulse');
@@ -792,14 +954,128 @@
                     surplusRateEl.style.color = '#5cc99b';
                 }
 
-                // Re-bind the inner elements after innerHTML change
-                const newSurplusMoney = document.getElementById('surplusMoney');
-                const newConclusionRate = document.getElementById('conclusionRate');
-                if (newSurplusMoney) window._surplusMoneyEl = newSurplusMoney;
-                if (newConclusionRate) window._conclusionRateEl = newConclusionRate;
+                // Re-bind dynamic elements
+                const newSM = document.getElementById('surplusMoney');
+                const newCR = document.getElementById('conclusionRate');
+                if (newSM) window._surplusMoneyEl = newSM;
+                if (newCR) window._conclusionRateEl = newCR;
+
+                // ===================== YEARLY UPDATE =====================
+                const days = parseInt(workDaysPerMonthEl.textContent) || 22;
+                const monthlyWS = ws * days;
+                const yearlyWS = monthlyWS * 12;
+                const yearlySH = s * days * 12;
+                monthlySurplusEl.textContent = fmtMoney(monthlyWS);
+                monthlySurplusEl.className = 'yl-value ' + (monthlyWS >= 0 ? 'positive' : 'negative');
+                yearlySurplusEl.textContent = fmtMoney(yearlyWS);
+                yearlySurplusEl.className = 'yl-value ' + (yearlyWS >= 0 ? 'positive' : 'negative');
+                yearlySurplusHoursEl.textContent = fmtHours(yearlySH);
+                daysHintEl.textContent = days;
+
+                // ===================== FORMULA STEPS =====================
+                formulaStepsEl.innerHTML =
+                    '📌 已知条件\n' +
+                    '  总工作时间 L = ' + L + ' h/天\n' +
+                    '  日工资 v = ' + v + ' 元/天\n' +
+                    '  日生存成本 c = ' + c + ' 元/天\n' +
+                    '\n' +
+                    '📌 步骤 1：计算小时工资\n' +
+                    '  时薪 = v ÷ L = ' + v + ' ÷ ' + L + ' = <span class="step-val">' + fmtn(w) + ' 元/h</span>\n' +
+                    '\n' +
+                    '📌 步骤 2：计算必要劳动时间\n' +
+                    '  必要劳动时间 = c ÷ 时薪 = ' + c + ' ÷ ' + fmtn(w) + ' = <span class="step-val">' + fmtn(n) + ' h</span>\n' +
+                    '  (需工作 ' + fmtn(n) + 'h 才能挣回 ' + c + ' 元生存成本)\n' +
+                    (n > L ? '  ⚠ 但一天只有 ' + L + 'h，故取 min(' + fmtn(n) + ', ' + L + ') = <span class="step-val">' + fmtn(nc) + ' h</span>\n' : '') +
+                    '\n' +
+                    '📌 步骤 3：计算剩余劳动时间\n' +
+                    '  剩余劳动时间 = L − 必要劳动时间 = ' + L + ' − ' + fmtn(nc) + ' = <span class="step-val">' + fmtn(s) + ' h</span>\n' +
+                    '\n' +
+                    '📌 步骤 4：计算剩余价值率（剥削率）\n' +
+                    (s > 0 && nc > 0
+                        ? "  m' = 剩余劳动 ÷ 必要劳动 × 100% = " + fmtn(s) + ' ÷ ' + fmtn(nc) + ' × 100% = <span class="step-val">' + fmtr(m) + '</span>'
+                        : (m === Infinity
+                            ? "  m' = ∞（全部时间为剩余劳动，必要劳动为 0）"
+                            : "  m' = 0（无剩余劳动时间）")
+                    );
+
+                // ===================== CHART UPDATE =====================
+                updateChart(L, v, c);
             }
 
-            // Event listeners
+            // ===================== CHART =====================
+            function updateChart(L_current, v, c) {
+                const hours = [];
+                const rates = [];
+                const ctx = document.getElementById('sensitivityChart').getContext('2d');
+
+                // Generate data: vary L from 1 to 24
+                for (let L = 1; L <= 24; L += 0.5) {
+                    const r = calcCore(L, v, c);
+                    hours.push(L);
+                    rates.push(r.m === Infinity ? null : parseFloat(r.m.toFixed(2)));
+                }
+
+                if (chartInstance) chartInstance.destroy();
+
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: hours,
+                        datasets: [{
+                            label: '剥削率 m\' (%)',
+                            data: rates,
+                            borderColor: '#e8453c',
+                            backgroundColor: 'rgba(232,69,60,0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHitRadius: 5,
+                            tension: 0.3,
+                            fill: true,
+                        }, {
+                            label: '当前工时',
+                            data: hours.map(h => h === L_current ? rates[hours.indexOf(h)] : null),
+                            borderColor: '#d4a853',
+                            backgroundColor: '#d4a853',
+                            pointRadius: hours.map(h => h === L_current ? 6 : 0),
+                            pointBackgroundColor: '#d4a853',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            showLine: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#a0a4b0', font: { size: 11 }, usePointStyle: true }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        if (ctx.datasetIndex === 1) return '当前: ' + L_current + 'h → ' + (rates[hours.indexOf(L_current)] ?? '∞') + '%';
+                                        return ctx.parsed.y === null ? '∞' : ctx.parsed.y.toFixed(2) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: '工作时间 (h)', color: '#6b6f7c' },
+                                ticks: { color: '#6b6f7c', stepSize: 2 },
+                                grid: { color: 'rgba(37,40,54,0.5)' }
+                            },
+                            y: {
+                                title: { display: true, text: '剥削率 m\' (%)', color: '#6b6f7c' },
+                                ticks: { color: '#6b6f7c' },
+                                grid: { color: 'rgba(37,40,54,0.5)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ===================== BIND INPUTS =====================
             function bindInputPair(numberInput, sliderInput) {
                 numberInput.addEventListener('input', function() {
                     const val = parseFloat(this.value);
@@ -807,19 +1083,15 @@
                         const min = parseFloat(sliderInput.min);
                         const max = parseFloat(sliderInput.max);
                         const clamped = Math.max(min, Math.min(max, val));
-                        if (clamped !== val) {
-                            this.value = clamped;
-                        }
+                        if (clamped !== val) this.value = clamped;
                         sliderInput.value = clamped;
                     }
                     syncAll();
                 });
-
                 sliderInput.addEventListener('input', function() {
                     numberInput.value = this.value;
                     syncAll();
                 });
-
                 numberInput.addEventListener('blur', function() {
                     if (this.value === '' || isNaN(parseFloat(this.value))) {
                         this.value = sliderInput.value;
@@ -832,7 +1104,46 @@
             bindInputPair(dailyWageInput, dailyWageSlider);
             bindInputPair(survivalCostInput, survivalCostSlider);
 
-            // Initialize
+            // Also update yearly summary when work days change
+            workDaysPerMonthEl.addEventListener('blur', function() {
+                let d = parseInt(this.textContent) || 22;
+                d = Math.max(1, Math.min(31, d));
+                this.textContent = d;
+                syncAll();
+            });
+            workDaysPerMonthEl.addEventListener('click', function() {
+                // Allow inline editing
+                const current = this.textContent;
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = current;
+                input.min = 1;
+                input.max = 31;
+                input.style.width = '40px';
+                input.style.background = '#1c1f2b';
+                input.style.color = '#f0f0f0';
+                input.style.border = '1px solid var(--accent-gold)';
+                input.style.borderRadius = '4px';
+                input.style.textAlign = 'center';
+                input.style.fontSize = '1rem';
+                input.style.fontWeight = '700';
+                this.textContent = '';
+                this.appendChild(input);
+                input.focus();
+                input.select();
+                input.addEventListener('blur', function() {
+                    let d = parseInt(this.value) || 22;
+                    d = Math.max(1, Math.min(31, d));
+                    workDaysPerMonthEl.textContent = d;
+                    daysHintEl.textContent = d;
+                    syncAll();
+                });
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') this.blur();
+                });
+            });
+
+            // ===================== INIT =====================
             syncAll();
         })();
     </script>
